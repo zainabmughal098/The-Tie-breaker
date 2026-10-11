@@ -537,6 +537,15 @@ export const CollaborativeRoomView: React.FC<CollaborativeRoomViewProps> = ({
               </div>
             </div>
 
+            {/* Real-time Recharts Bar Chart Visualization */}
+            {consensus && (
+              <VotingResultsChart
+                room={currentRoom}
+                consensus={consensus}
+                onSimulateVotes={handleSimulateVoters}
+              />
+            )}
+
             {/* Live Consensus Tally Dashboard */}
             {consensus && currentRoom.votes.length > 0 && (
               <div className="mt-6 pt-2">
@@ -565,9 +574,6 @@ export const CollaborativeRoomView: React.FC<CollaborativeRoomViewProps> = ({
                     )}
                   </div>
                 </div>
-
-                {/* Real-time Recharts Bar Chart Visualization */}
-                <VotingResultsChart room={currentRoom} consensus={consensus} />
 
                 {/* Consensus Ranking Bars */}
                 <div className="space-y-3">

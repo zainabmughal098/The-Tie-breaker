@@ -8,28 +8,37 @@ import {
   ResponsiveContainer,
   Cell,
   CartesianGrid,
+  LabelList,
 } from 'recharts';
 import type { CollaborativeRoom } from '../types/decision.ts';
 import type { GroupConsensusMetrics } from '../utils/votingCalculator.ts';
-import { BarChart3, TrendingUp } from 'lucide-react';
+import { BarChart3, TrendingUp, Users, Sparkles } from 'lucide-react';
 
 interface VotingResultsChartProps {
   room: CollaborativeRoom;
   consensus: GroupConsensusMetrics;
+  onSimulateVotes?: () => void;
 }
 
 export const VotingResultsChart: React.FC<VotingResultsChartProps> = ({
   room,
   consensus,
+  onSimulateVotes,
 }) => {
   const [metricMode, setMetricMode] = useState<'primary' | 'firstPlace'>('primary');
-
-  if (!consensus || consensus.tallies.length === 0 || room.votes.length === 0) {
-    return null;
-  }
+  const hasVotes = room.votes && room.votes.length > 0;
 
   // Format data for Recharts
-  const chartData = consensus.tallies.map((tally, index) => {
+  const chartData = (consensus?.tallies?.length > 0 ? consensus.tallies : room.options.map(opt => ({
+    optionId: opt.id,
+    optionName: opt.name,
+    totalScore: 0,
+    voteCount: 0,
+    rankPoints: 0,
+    budgetPoints: 0,
+    averageScore: 0,
+    firstPlaceVotes: 0,
+  }))).map((tally, index) => {
     let metricValue = tally.totalScore;
     let metricLabel = 'Points';
 
@@ -44,16 +53,16 @@ export const VotingResultsChart: React.FC<VotingResultsChartProps> = ({
       metricValue = tally.budgetPoints;
     }
 
-    const isWinner = tally.optionId === consensus.winnerId;
+    const isWinner = hasVotes && tally.optionId === consensus.winnerId;
 
     return {
       id: tally.optionId,
       name: tally.optionName,
       shortName:
-        tally.optionName.length > 20
-          ? tally.optionName.substring(0, 18) + '…'
+        tally.optionName.length > 22
+          ? tally.optionName.substring(0, 20) + '…'
           : tally.optionName,
-      value: metricMode === 'firstPlace' ? tally.firstPlaceVotes : metricValue,
+      value: hasVotes ? (metricMode === 'firstPlace' ? tally.firstPlaceVotes : metricValue) : 0,
       primaryValue: metricValue,
       firstPlaceVotes: tally.firstPlaceVotes,
       voteCount: tally.voteCount,
@@ -66,12 +75,12 @@ export const VotingResultsChart: React.FC<VotingResultsChartProps> = ({
 
   const valueLabel =
     metricMode === 'firstPlace'
-      ? '1st Place Votes'
+      ? '1st-Choice Preference Distribution'
       : room.votingMethod === 'ranked'
-      ? 'Borda Preference Points'
+      ? 'Borda Preference Points (Ranked Choice)'
       : room.votingMethod === 'score'
-      ? 'Average Rating (1-10)'
-      : 'Allocated Budget Points';
+      ? 'Average Rating (1 to 10 Scale)'
+      : 'Total Allocated Points (100-Point Budget)';
 
   return (
     <div className="bg-white rounded-xl border border-zinc-200 p-5 sm:p-6 shadow-xs my-6">
@@ -80,17 +89,19 @@ export const VotingResultsChart: React.FC<VotingResultsChartProps> = ({
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-1">
             <BarChart3 className="w-4 h-4 text-zinc-700" />
-            <span>Real-Time Consensus Visualization</span>
+            <span>Real-Time Voting Results</span>
             <span aria-hidden="true">·</span>
-            <span className="font-mono text-zinc-900">{room.votes.length} Voters</span>
+            <span className="font-mono text-zinc-900">
+              {room.votes.length} {room.votes.length === 1 ? 'Ballot Cast' : 'Ballots Cast'}
+            </span>
           </div>
           <h3 className="text-sm font-semibold text-zinc-900">
             {valueLabel}
           </h3>
         </div>
 
-        {/* Optional View Switcher for Ranked Choice */}
-        {room.votingMethod === 'ranked' && (
+        {/* View Switcher for Ranked Choice */}
+        {hasVotes && room.votingMethod === 'ranked' && (
           <div className="flex items-center p-0.5 bg-zinc-100 rounded-lg text-xs font-medium self-start sm:self-auto">
             <button
               type="button"
@@ -112,110 +123,142 @@ export const VotingResultsChart: React.FC<VotingResultsChartProps> = ({
                   : 'text-zinc-600 hover:text-zinc-900'
               }`}
             >
-              1st Choice Votes
+              1st-Choice Votes
             </button>
           </div>
         )}
       </div>
 
-      {/* Recharts Bar Chart Container */}
-      <div className="h-64 sm:h-72 w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 12, right: 16, left: -10, bottom: 24 }}
-          >
-            <CartesianGrid
-              strokeDasharray="3 3"
-              vertical={false}
-              stroke="#f4f4f5"
-            />
-            <XAxis
-              dataKey="shortName"
-              tick={{ fontSize: 11, fill: '#71717a' }}
-              tickLine={false}
-              axisLine={{ stroke: '#e4e4e7' }}
-              interval={0}
-              angle={chartData.length > 3 ? -15 : 0}
-              textAnchor={chartData.length > 3 ? 'end' : 'middle'}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: '#a1a1aa' }}
-              tickLine={false}
-              axisLine={false}
-              allowDecimals={room.votingMethod === 'score'}
-            />
-            <Tooltip
-              cursor={{ fill: 'rgba(244, 244, 245, 0.6)' }}
-              content={({ active, payload }) => {
-                if (active && payload && payload.length) {
-                  const data = payload[0].payload;
-                  return (
-                    <div className="bg-zinc-900 text-white rounded-lg p-3 text-xs shadow-md border border-zinc-800">
-                      <div className="flex items-center gap-1.5 font-semibold text-zinc-100 mb-1">
-                        <span>#{data.rank}</span>
-                        <span>{data.name}</span>
-                        {data.isWinner && (
-                          <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-1.5 py-0.2 rounded">
-                            Leader
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-zinc-300 font-mono text-[11px] space-y-0.5">
-                        <div>
-                          {data.metricLabel}: <span className="font-bold text-white">{data.primaryValue}</span>
-                        </div>
-                        {room.votingMethod === 'ranked' && (
-                          <div className="text-zinc-400">
-                            1st Place Votes: {data.firstPlaceVotes}
-                          </div>
-                        )}
-                        {room.votingMethod === 'score' && (
-                          <div className="text-zinc-400">
-                            Ballots Rated: {data.voteCount}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              }}
-            />
-            <Bar
-              dataKey="value"
-              radius={[6, 6, 0, 0]}
-              animationDuration={600}
+      {/* Empty State Overlay if no ballots yet */}
+      {!hasVotes ? (
+        <div className="text-center py-10 px-4 bg-zinc-50/70 rounded-lg border border-dashed border-zinc-300">
+          <Users className="w-8 h-8 text-zinc-400 mx-auto mb-2" />
+          <h4 className="text-xs font-semibold text-zinc-800">
+            Awaiting First Ballots
+          </h4>
+          <p className="text-xs text-zinc-500 max-w-sm mx-auto mt-1 mb-4 leading-relaxed">
+            Submit your vote below or simulate team responses to watch the real-time bar chart update live.
+          </p>
+          {onSimulateVotes && (
+            <button
+              type="button"
+              onClick={onSimulateVotes}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-medium transition-colors shadow-xs"
             >
-              {chartData.map((entry) => (
-                <Cell
-                  key={`cell-${entry.id}`}
-                  fill={entry.isWinner ? '#18181b' : '#a1a1aa'}
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Simulate Team Votes Now</span>
+            </button>
+          )}
+        </div>
+      ) : (
+        /* Recharts Bar Chart Container */
+        <div className="h-64 sm:h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 16, right: 16, left: -10, bottom: 28 }}
+            >
+              <CartesianGrid
+                strokeDasharray="3 3"
+                vertical={false}
+                stroke="#f4f4f5"
+              />
+              <XAxis
+                dataKey="shortName"
+                tick={{ fontSize: 11, fill: '#71717a' }}
+                tickLine={false}
+                axisLine={{ stroke: '#e4e4e7' }}
+                interval={0}
+                angle={chartData.length > 3 ? -15 : 0}
+                textAnchor={chartData.length > 3 ? 'end' : 'middle'}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: '#a1a1aa' }}
+                tickLine={false}
+                axisLine={false}
+                allowDecimals={room.votingMethod === 'score'}
+              />
+              <Tooltip
+                cursor={{ fill: 'rgba(244, 244, 245, 0.6)' }}
+                content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-zinc-900 text-white rounded-lg p-3 text-xs shadow-md border border-zinc-800">
+                        <div className="flex items-center gap-1.5 font-semibold text-zinc-100 mb-1">
+                          <span>#{data.rank}</span>
+                          <span>{data.name}</span>
+                          {data.isWinner && (
+                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 font-mono px-1.5 py-0.2 rounded">
+                              Leader
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-zinc-300 font-mono text-[11px] space-y-0.5">
+                          <div>
+                            {data.metricLabel}: <span className="font-bold text-white">{data.primaryValue}</span>
+                          </div>
+                          {room.votingMethod === 'ranked' && (
+                            <div className="text-zinc-400">
+                              1st Place Votes: {data.firstPlaceVotes}
+                            </div>
+                          )}
+                          {room.votingMethod === 'score' && (
+                            <div className="text-zinc-400">
+                              Ballots Rated: {data.voteCount}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar
+                dataKey="value"
+                radius={[6, 6, 0, 0]}
+                animationDuration={600}
+              >
+                {chartData.map((entry) => (
+                  <Cell
+                    key={`cell-${entry.id}`}
+                    fill={entry.isWinner ? '#18181b' : '#a1a1aa'}
+                  />
+                ))}
+                <LabelList
+                  dataKey="value"
+                  position="top"
+                  fill="#71717a"
+                  fontSize={11}
+                  formatter={(val: any) => (val > 0 ? val : '')}
                 />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
 
       {/* Chart Subtitle / Legend */}
-      <div className="mt-2 pt-3 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-2">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-xs bg-zinc-900 inline-block" />
-            <span className="font-medium text-zinc-700">Consensus Leader</span>
+      {hasVotes && (
+        <div className="mt-2 pt-3 border-t border-zinc-100 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-xs bg-zinc-900 inline-block" />
+              <span className="font-medium text-zinc-700">Consensus Leader</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-xs bg-zinc-400 inline-block" />
+              <span>Competing Options</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-3 h-3 rounded-xs bg-zinc-400 inline-block" />
-            <span>Competing Options</span>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
-          <TrendingUp className="w-3.5 h-3.5 text-zinc-500" />
-          <span>Real-time live aggregation across all ballots</span>
+          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400">
+            <TrendingUp className="w-3.5 h-3.5 text-zinc-500" />
+            <span>Live real-time aggregation across all participant ballots</span>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
