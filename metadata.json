@@ -1,0 +1,6 @@
+{
+  "name": "The Tiebreaker",
+  "description": "Intelligent decision engine featuring AI-powered pros & cons, multi-criteria comparison tables, SWOT matrices, and real-time collaborative group voting to break deadlocks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
