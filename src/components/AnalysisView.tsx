@@ -24,6 +24,7 @@ import { exportDecisionToPDF } from '../utils/pdfExport.ts';
 
 interface AnalysisViewProps {
   decision: DecisionAnalysis;
+  initialTab?: AnalysisTab;
   onLaunchGroupRoom: (decision: DecisionAnalysis) => void;
   onSaveDecision: (decision: DecisionAnalysis) => void;
   onNewDecision: () => void;
@@ -33,11 +34,18 @@ type AnalysisTab = 'verdict' | 'proscons' | 'matrix' | 'swot';
 
 export const AnalysisView: React.FC<AnalysisViewProps> = ({
   decision,
+  initialTab = 'verdict',
   onLaunchGroupRoom,
   onSaveDecision,
   onNewDecision,
 }) => {
-  const [activeTab, setActiveTab] = useState<AnalysisTab>('verdict');
+  const [activeTab, setActiveTab] = useState<AnalysisTab>(initialTab);
+
+  React.useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, decision.id]);
   const [selectedOptionId, setSelectedOptionId] = useState<string>(
     decision.options[0]?.id || ''
   );

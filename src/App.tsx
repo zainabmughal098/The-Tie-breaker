@@ -16,6 +16,7 @@ export default function App() {
   const [currentDecision, setCurrentDecision] = useState<DecisionAnalysis | null>(
     SAMPLE_DECISIONS[0]
   );
+  const [analysisTab, setAnalysisTab] = useState<'verdict' | 'proscons' | 'matrix' | 'swot'>('proscons');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
@@ -90,6 +91,7 @@ export default function App() {
     context: string;
     options: string[];
     category: string;
+    preferredView?: 'proscons' | 'matrix' | 'swot' | 'verdict';
   }) => {
     setIsLoading(true);
     setErrorNotice(null);
@@ -108,6 +110,9 @@ export default function App() {
 
       const analyzedDecision: DecisionAnalysis = await response.json();
       setCurrentDecision(analyzedDecision);
+      if (payload.preferredView) {
+        setAnalysisTab(payload.preferredView);
+      }
       setIsFormOpen(false);
       setActiveTab('lab');
 
@@ -217,6 +222,7 @@ export default function App() {
             ) : (
               <AnalysisView
                 decision={currentDecision}
+                initialTab={analysisTab}
                 onLaunchGroupRoom={handleLaunchGroupRoom}
                 onSaveDecision={(d) => {
                   setSavedDecisions((prev) => [d, ...prev.filter((item) => item.id !== d.id)]);
