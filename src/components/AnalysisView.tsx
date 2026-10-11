@@ -10,6 +10,7 @@ import {
   Copy,
   Download,
   FileDown,
+  FileSpreadsheet,
   Share2,
   Check,
   ShieldAlert,
@@ -21,6 +22,7 @@ import {
 import type { DecisionAnalysis, DecisionOption, ProItem, ConItem } from '../types/decision.ts';
 import confetti from 'canvas-confetti';
 import { exportDecisionToPDF } from '../utils/pdfExport.ts';
+import { exportDecisionToCSV } from '../utils/csvExport.ts';
 
 interface AnalysisViewProps {
   decision: DecisionAnalysis;
@@ -186,6 +188,14 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
     }
   };
 
+  const handleExportCSV = () => {
+    try {
+      exportDecisionToCSV(decision, criteriaWeights);
+    } catch (err) {
+      console.error('Failed to export CSV:', err);
+    }
+  };
+
   const activeOption =
     decision.options.find((o) => o.id === selectedOptionId) || decision.options[0];
 
@@ -229,11 +239,20 @@ export const AnalysisView: React.FC<AnalysisViewProps> = ({
           <button
             onClick={handleExportPDF}
             disabled={isExportingPdf}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium bg-white text-zinc-800 hover:text-zinc-950 border border-zinc-300 rounded-lg transition-colors shadow-xs"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-zinc-800 hover:text-zinc-950 border border-zinc-300 rounded-lg transition-colors shadow-xs"
             title="Download full decision evaluation report as PDF"
           >
             <FileDown className="w-3.5 h-3.5 text-zinc-700" />
             <span>{isExportingPdf ? 'Exporting PDF...' : 'Export to PDF'}</span>
+          </button>
+
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-white text-zinc-800 hover:text-zinc-950 border border-zinc-300 rounded-lg transition-colors shadow-xs"
+            title="Export decision analysis data as CSV spreadsheet for Excel or Google Sheets"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-zinc-700" />
+            <span>Export to CSV</span>
           </button>
 
           <button
