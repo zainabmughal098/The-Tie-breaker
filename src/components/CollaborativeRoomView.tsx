@@ -21,6 +21,7 @@ import {
 import type { CollaborativeRoom, VoterBallot, VotingMethod } from '../types/decision.ts';
 import { calculateRoomConsensus } from '../utils/votingCalculator.ts';
 import confetti from 'canvas-confetti';
+import { VotingResultsChart } from './VotingResultsChart.tsx';
 
 interface CollaborativeRoomViewProps {
   initialRoom?: CollaborativeRoom | null;
@@ -564,6 +565,9 @@ export const CollaborativeRoomView: React.FC<CollaborativeRoomViewProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Real-time Recharts Bar Chart Visualization */}
+                <VotingResultsChart room={currentRoom} consensus={consensus} />
 
                 {/* Consensus Ranking Bars */}
                 <div className="space-y-3">
